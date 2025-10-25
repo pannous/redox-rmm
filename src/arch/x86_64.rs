@@ -57,14 +57,7 @@ impl Arch for X8664Arch {
         // On x86_64, an address is valid if and only if it is canonical. It may still point to
         // unmapped memory, but will always be valid once translated via the page table has
         // suceeded.
-        address.is_canonical()
-    }
-}
-
-impl VirtualAddress {
-    #[doc(cfg(target_arch = "x86_64"))]
-    pub fn is_canonical(self) -> bool {
-        let masked = self.data() & 0xFFFF_8000_0000_0000;
+        let masked = address.data() & 0xFFFF_8000_0000_0000;
         // TODO: 5-level paging
         masked == 0xFFFF_8000_0000_0000 || masked == 0
     }
@@ -96,10 +89,10 @@ mod tests {
     #[test]
     fn is_canonical() {
         fn yes(address: usize) {
-            assert!(VirtualAddress::new(address).is_canonical());
+            assert!(X8664Arch::virt_is_valid(VirtualAddress::new(address)));
         }
         fn no(address: usize) {
-            assert!(!VirtualAddress::new(address).is_canonical());
+            assert!(!X8664Arch::virt_is_valid(VirtualAddress::new(address)));
         }
 
         yes(0xFFFF_8000_1337_1337);
