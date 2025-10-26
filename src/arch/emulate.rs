@@ -1,5 +1,4 @@
-use core::{marker::PhantomData, mem, ptr};
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, marker::PhantomData, mem, ptr, sync::Mutex};
 
 use crate::{
     arch::x86_64::X8664Arch, page::PageFlags, Arch, MemoryArea, PageEntry, PhysicalAddress,
@@ -64,7 +63,7 @@ impl Arch for EmulateArch {
                 );
             }
 
-            MACHINE = Some(machine);
+            *MACHINE.lock().unwrap() = Some(machine);
 
             // Set table to pml4
             EmulateArch::set_table(TableKind::Kernel, PhysicalAddress::new(pml4));
@@ -75,43 +74,52 @@ impl Arch for EmulateArch {
 
     #[inline(always)]
     unsafe fn read<T>(address: VirtualAddress) -> T {
-        unsafe { MACHINE.as_ref().unwrap().read(address) }
+        MACHINE.lock().unwrap().as_ref().unwrap().read(address)
     }
 
     #[inline(always)]
     unsafe fn write<T>(address: VirtualAddress, value: T) {
-        unsafe { MACHINE.as_mut().unwrap().write(address, value) }
+        MACHINE
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .write(address, value)
     }
 
     #[inline(always)]
     unsafe fn write_bytes(address: VirtualAddress, value: u8, count: usize) {
-        unsafe { MACHINE.as_mut().unwrap().write_bytes(address, value, count) }
+        MACHINE
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .write_bytes(address, value, count)
     }
 
     #[inline(always)]
     unsafe fn invalidate(address: VirtualAddress) {
-        unsafe {
-            MACHINE.as_mut().unwrap().invalidate(address);
-        }
+        MACHINE
+            .lock()
+            .unwrap()
+            .as_mut()
+            .unwrap()
+            .invalidate(address);
     }
 
     #[inline(always)]
     unsafe fn invalidate_all() {
-        unsafe {
-            MACHINE.as_mut().unwrap().invalidate_all();
-        }
+        MACHINE.lock().unwrap().as_mut().unwrap().invalidate_all();
     }
 
     #[inline(always)]
     unsafe fn table(_table_kind: TableKind) -> PhysicalAddress {
-        unsafe { MACHINE.as_mut().unwrap().get_table() }
+        MACHINE.lock().unwrap().as_mut().unwrap().get_table()
     }
 
     #[inline(always)]
     unsafe fn set_table(_table_kind: TableKind, address: PhysicalAddress) {
-        unsafe {
-            MACHINE.as_mut().unwrap().set_table(address);
-        }
+        MACHINE.lock().unwrap().as_mut().unwrap().set_table(address);
     }
     fn virt_is_valid(_address: VirtualAddress) -> bool {
         // TODO: Don't see why an emulated arch would have any problems with canonicalness...
@@ -132,7 +140,7 @@ static MEMORY_AREAS: [MemoryArea; 2] = [
     },
 ];
 
-static mut MACHINE: Option<Machine<EmulateArch>> = None;
+static MACHINE: Mutex<Option<Machine<EmulateArch>>> = Mutex::new(None);
 
 struct Machine<A> {
     memory: Box<[u8]>,
