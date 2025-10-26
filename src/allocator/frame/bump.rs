@@ -25,7 +25,7 @@ impl<A: Arch> BumpAllocator<A> {
         }
     }
     pub fn areas(&self) -> &'static [MemoryArea] {
-        todo!()
+        self.orig_areas.0
     }
     /// Returns one semifree and the fully free areas. The offset is the number of bytes after
     /// which the first area is free.
