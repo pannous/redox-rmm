@@ -5,6 +5,9 @@ use crate::{Arch, MemoryArea, PhysicalAddress, TableKind, VirtualAddress};
 #[derive(Clone, Copy)]
 pub struct RiscV64Sv39Arch;
 
+pub const ACCESSED: usize = 1 << 6;
+pub const DIRTY: usize = 1 << 7;
+
 impl Arch for RiscV64Sv39Arch {
     const PAGE_SHIFT: usize = 12; // 4096 bytes
     const PAGE_ENTRY_SHIFT: usize = 9; // 512 entries, 8 bytes each
@@ -13,7 +16,8 @@ impl Arch for RiscV64Sv39Arch {
     const ENTRY_ADDRESS_WIDTH: usize = 44;
     const ENTRY_ADDRESS_SHIFT: usize = 10;
 
-    const ENTRY_FLAG_DEFAULT_PAGE: usize = Self::ENTRY_FLAG_PRESENT | Self::ENTRY_FLAG_READONLY;
+    const ENTRY_FLAG_DEFAULT_PAGE: usize =
+        Self::ENTRY_FLAG_PRESENT | Self::ENTRY_FLAG_READONLY | ACCESSED | DIRTY;
     const ENTRY_FLAG_DEFAULT_TABLE: usize = Self::ENTRY_FLAG_PRESENT;
     const ENTRY_FLAG_PRESENT: usize = 1 << 0;
     const ENTRY_FLAG_READONLY: usize = 1 << 1;
