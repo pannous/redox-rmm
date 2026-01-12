@@ -5,6 +5,48 @@ use crate::{Arch, MemoryArea, PhysicalAddress, TableKind, VirtualAddress};
 #[derive(Clone, Copy)]
 pub struct AArch64Arch;
 
+impl AArch64Arch {
+    /// Synchronize instruction cache after writing code to memory.
+    /// On aarch64, instruction and data caches are not coherent.
+    #[inline]
+    pub fn sync_icache(start: VirtualAddress, len: usize) {
+        let start_addr = start.data();
+        let end_addr = start_addr + len;
+        let cache_line = 64; // Typical aarch64 cache line size
+
+        unsafe {
+            // Clean data cache and invalidate instruction cache for each cache line
+            let mut addr = start_addr & !(cache_line - 1);
+            while addr < end_addr {
+                asm!(
+                    "dc cvau, {0}",  // Clean data cache by VA to PoU
+                    in(reg) addr,
+                    options(nostack, preserves_flags)
+                );
+                addr += cache_line;
+            }
+
+            asm!("dsb ish", options(nostack, preserves_flags)); // Data sync barrier
+
+            addr = start_addr & !(cache_line - 1);
+            while addr < end_addr {
+                asm!(
+                    "ic ivau, {0}",  // Invalidate instruction cache by VA to PoU
+                    in(reg) addr,
+                    options(nostack, preserves_flags)
+                );
+                addr += cache_line;
+            }
+
+            asm!(
+                "dsb ish",  // Data sync barrier
+                "isb",      // Instruction sync barrier
+                options(nostack, preserves_flags)
+            );
+        }
+    }
+}
+
 impl Arch for AArch64Arch {
     const PAGE_SHIFT: usize = 12; // 4096 bytes
     const PAGE_ENTRY_SHIFT: usize = 9; // 512 entries, 8 bytes each
