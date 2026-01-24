@@ -1,5 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![cfg_attr(target_arch = "aarch64", allow(improper_ctypes, improper_ctypes_definitions))]
+#![allow(warnings)]
 
 pub use crate::{allocator::*, arch::*, page::*};
 
