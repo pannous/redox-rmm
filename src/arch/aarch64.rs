@@ -36,14 +36,17 @@ impl Arch for AArch64Arch {
     //TODO
     const ENTRY_ADDRESS_WIDTH: usize = 40;
     const ENTRY_FLAG_DEFAULT_PAGE: usize = Self::ENTRY_FLAG_PRESENT
-        | 1 << 1 // Page flag
+        | 1 << 1 // Page flag (vs block)
         | 1 << 10 // Access flag
+        | 0b11 << 8 // Shareability: Inner Shareable (CRITICAL for SMP atomics!)
+        | 0 << 2 // AttrIndx[2:0] = 0 (NORMAL_WRITEBACK_MEMORY in MAIR)
         | Self::ENTRY_FLAG_NO_GLOBAL;
     const ENTRY_FLAG_DEFAULT_TABLE: usize
         = Self::ENTRY_FLAG_PRESENT
         | Self::ENTRY_FLAG_READWRITE
         | 1 << 1 // Table flag
         | 1 << 10 // Access flag
+        | 0b11 << 8 // Shareability: Inner Shareable for table walks too
         ;
     const ENTRY_FLAG_PRESENT: usize = 1 << 0;
     const ENTRY_FLAG_READONLY: usize = 1 << 7;
